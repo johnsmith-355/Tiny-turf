@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tiny Turf</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --asphalt: #17161A;
+    --asphalt-light: #221F26;
+    --chalk: #EDEAE3;
+    --chalk-dim: #8A8790;
+    --pink: #FF2E7E;
+    --cyan: #12D6C9;
+    --yellow: #F4D35E;
+    --orange: #FF6B35;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--asphalt);
+    color: var(--chalk);
+    font-family: 'Space Grotesk', sans-serif;
+    display: flex;
+    justify-content: center;
+  }
+
+  #app {
+    width: 100%;
+    max-width: 560px;
+    padding: 20px 18px 24px;
+  }
+
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+
+  .title {
+    font-family: 'Anton', sans-serif;
+    font-size: 30px;
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+
+  .crew-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--cyan);
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  .streak {
+    text-align: right;
+  }
+  .streak .num {
+    font-family: 'Space Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--yellow);
+  }
+  .streak .lbl {
+    font-size: 9px;
+    color: var(--chalk-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .stats {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--asphalt-light);
+    border-radius: 10px;
+    min-width: 58px;
+    border: 1px solid #322F3A;
+  }
+  .pill .val {
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .pill .lbl {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 9px;
+    color: var(--chalk-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  #flash {
+    height: 30px;
+    display: flex;
+    align-items: center;
+    font-family: 'Anton', sans-serif;
+    font-size: 15px;
+    letter-spacing: 1.5px;
+    margin-top: 4px;
+  }
+
+  #mapWrap {
+    border-radius: 16px;
+    border: 1px solid #2C2833;
+    background: radial-gradient(circle at 50% 30%, #201E24 0%, #17161A 70%);
+    overflow: auto;
+  }
+
+  svg { display: block; margin: 0 auto; }
+
+  polygon.tile {
+    cursor: pointer;
+    transition: fill-opacity 0.3s ease;
+  }
+
+  #sheet {
+    margin-top: 10px;
+    background: var(--asphalt-light);
+    border: 1px solid #322F3A;
+    border-radius: 14px;
+    padding: 16px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+  }
+  #sheet.open { display: flex; }
+
+  #sheet .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #sheetName {
+    font-family: 'Anton', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.5px;
+  }
+  #sheetOwner {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--chalk-dim);
+    margin-top: 2px;
+  }
+  #closeSheet {
+    background: none;
+    border: none;
+    color: var(--chalk-dim);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  #barLabel {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--chalk-dim);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  #barTrack {
+    height: 6px;
+    background: #2C2833;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  #barFill {
+    height: 100%;
+    width: 0%;
+    transition: width 0.4s ease;
+  }
+
+  #claimBtn {
+    margin-top: 4px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: none;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--asphalt);
+  }
+
+  #hint {
+    text-align: center;
+    color: var(--chalk-dim);
+    font-size: 12px;
+    padding: 18px 0;
+  }
+
+  #footer {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: #4A4653;
+    margin-top: 14px;
+    letter-spacing: 0.5px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="topbar">
+    <div>
+      <div class="title">TINY TURF</div>
+      <div class="crew-label">CREW: NIGHT MARKET</div>
+    </div>
+    <div class="streak">
+      <div class="num" id="streakNum">🔥 0</div>
+      <div class="lbl">streak</div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="pill"><span class="val" id="yourVal" style="color:var(--cyan)">0</span><span class="lbl">Your Turf</span></div>
+    <div class="pill"><span class="val" id="rivalVal" style="color:var(--pink)">0</span><span class="lbl">Rival Turf</span></div>
+    <div class="pill"><span class="val" id="openVal">0</span><span class="lbl">Unclaimed</span></div>
+  </div>
+
+  <div id="flash"></div>
+
+  <div id="mapWrap">
+    <svg id="board" width="520" height="520" viewBox="0 0 520 520"></svg>
+  </div>
+
+  <div id="sheet">
+    <div class="row">
+      <div>
+        <div id="sheetName"></div>
+        <div id="sheetOwner"></div>
+      </div>
+      <button id="closeSheet" aria-label="Close">✕</button>
+    </div>
+    <div id="barBlock">
+      <div id="barLabel"><span>Defense</span><span id="barPct">0%</span></div>
+      <div id="barTrack"><div id="barFill"></div></div>
+    </div>
+    <button id="claimBtn"></button>
+  </div>
+  <div id="hint">Tap a tile to claim, reinforce, or start a turf war.</div>
+
+  <div id="footer">PROTOTYPE · TILES DECAY EVERY FEW SECONDS IN THIS DEMO</div>
+</div>
+
+<script>
+// ---------- Config ----------
+const COLORS = {
+  asphaltLight: "#221F26",
+  chalk: "#EDEAE3",
+  pink: "#FF2E7E",
+  cyan: "#12D6C9",
+  yellow: "#F4D35E",
+  orange: "#FF6B35",
+  rivals: ["#FF2E7E", "#F4D35E", "#8C6BFF"],
+};
+const CREW_NAMES = ["You", "Blockrunners", "Nightshift", "Curbstompers"];
+const SPOT_NAMES = [
+  "Corner Bodega", "Mural Wall", "Loading Dock", "Skate Ledge", "Bus Shelter",
+  "Fire Escape", "Rooftop Access", "Underpass", "Basketball Court", "Diner Booth",
+  "Laundromat", "Back Alley", "Fountain Steps", "Parking Deck", "Rail Bridge",
+  "Payphone", "Newsstand", "Loading Ramp", "Water Tower", "Courtyard",
+];
+
+const HEX_R = 34;
+const HEX_W = Math.sqrt(3) * HEX_R;
+const HEX_H = 2 * HEX_R;
+
+function hexCenter(q, r) {
+  return { x: HEX_W * (q + r / 2), y: HEX_H * (3 / 4) * r };
+}
+function hexPoints(cx, cy, size) {
+  const pts = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 180) * (60 * i - 30);
+    pts.push(`${cx + size * Math.cos(angle)},${cy + size * Math.sin(angle)}`);
+  }
+  return pts.join(" ");
+}
+
+// ---------- State ----------
+let tiles = [];
+let selectedId = null;
+let streak = 0;
+let flashTimer = null;
+
+function generateGrid() {
+  const arr = [];
+  const radius = 3;
+  let id = 0;
+  for (let q = -radius; q <= radius; q++) {
+    for (let r = -radius; r <= radius; r++) {
+      const s = -q - r;
+      if (Math.abs(s) > radius) continue;
+      const dist = Math.max(Math.abs(q), Math.abs(r), Math.abs(s));
+      if (Math.random() < 0.12 && dist > 0) continue;
+      arr.push({
+        id: id++,
+        q, r,
+        name: SPOT_NAMES[Math.floor(Math.random() * SPOT_NAMES.length)] +
+              (Math.random() < 0.3 ? ` ${Math.floor(Math.random()*90+10)}th` : ""),
+        owner: null,
+        strength: 0,
+      });
+    }
+  }
+  return arr;
+}
+
+function seedRivals() {
+  const seedCount = Math.min(6, tiles.length);
+  const shuffled = [...tiles].sort(() => Math.random() - 0.5).slice(0, seedCount);
+  shuffled.forEach((t) => {
+    t.owner = 1 + Math.floor(Math.random() * 3);
+    t.strength = 40 + Math.floor(Math.random() * 50);
+  });
+}
+
+// ---------- Rendering ----------
+const svg = document.getElementById("board");
+
+function ownerColor(owner) {
+  if (owner === null) return COLORS.asphaltLight;
+  if (owner === 0) return COLORS.cyan;
+  return COLORS.rivals[(owner - 1) % COLORS.rivals.length];
+}
+
+function renderBoard() {
+  svg.innerHTML = "";
+  tiles.forEach((tile) => {
+    const { x, y } = hexCenter(tile.q, tile.r);
+    const cx = x + 260, cy = y + 260;
+    const owned = tile.owner !== null;
+    const color = ownerColor(tile.owner);
+    const opacity = owned ? 0.25 + (tile.strength / 100) * 0.55 : 1;
+
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute("transform", `translate(${cx}, ${cy})`);
+    g.style.cursor = "pointer";
+    g.addEventListener("click", () => selectTile(tile.id));
+
+    const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+    poly.setAttribute("class", "tile");
+    poly.setAttribute("points", hexPoints(0, 0, HEX_R - 2));
+    poly.setAttribute("fill", owned ? color : COLORS.asphaltLight);
+    poly.setAttribute("fill-opacity", owned ? opacity : 1);
+    const isSelected = tile.id === selectedId;
+    poly.setAttribute("stroke", isSelected ? COLORS.chalk : (owned ? color : "#3A3742"));
+    poly.setAttribute("stroke-width", isSelected ? 3 : 1.5);
+    g.appendChild(poly);
+
+    if (owned && tile.strength < 30) {
+      const warn = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+      warn.setAttribute("points", hexPoints(0, 0, HEX_R - 2));
+      warn.setAttribute("fill", "none");
+      warn.setAttribute("stroke", COLORS.orange);
+      warn.setAttribute("stroke-width", 2);
+      warn.setAttribute("stroke-dasharray", "4 3");
+      g.appendChild(warn);
+    }
+
+    if (owned) {
+      const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      dot.setAttribute("cx", 0);
+      dot.setAttribute("cy", -HEX_R + 14);
+      dot.setAttribute("r", 3);
+      dot.setAttribute("fill", COLORS.chalk);
+      dot.setAttribute("fill-opacity", 0.85);
+      g.appendChild(dot);
+    }
+
+    svg.appendChild(g);
+  });
+}
+
+function renderStats() {
+  const yourTiles = tiles.filter(t => t.owner === 0).length;
+  const rivalTiles = tiles.filter(t => t.owner !== null && t.owner !== 0).length;
+  const openTiles = tiles.filter(t => t.owner === null).length;
+  document.getElementById("yourVal").textContent = yourTiles;
+  document.getElementById("rivalVal").textContent = rivalTiles;
+  document.getElementById("openVal").textContent = openTiles;
+  document.getElementById("streakNum").textContent = "🔥 " + streak;
+}
+
+function renderSheet() {
+  const sheet = document.getElementById("sheet");
+  const hint = document.getElementById("hint");
+  const tile = tiles.find(t => t.id === selectedId);
+
+  if (!tile) {
+    sheet.classList.remove("open");
+    hint.style.display = "block";
+    return;
+  }
+  hint.style.display = "none";
+  sheet.classList.add("open");
+
+  document.getElementById("sheetName").textContent = tile.name;
+  document.getElementById("sheetOwner").textContent =
+    tile.owner === null ? "UNCLAIMED" : `HELD BY ${CREW_NAMES[tile.owner]?.toUpperCase() || "RIVAL"}`;
+
+  const barBlock = document.getElementById("barBlock");
+  if (tile.owner !== null) {
+    barBlock.style.display = "block";
+    document.getElementById("barPct").textContent = Math.round(tile.strength) + "%";
+    const fill = document.getElementById("barFill");
+    fill.style.width = tile.strength + "%";
+    fill.style.background = tile.owner === 0 ? COLORS.cyan : COLORS.pink;
+  } else {
+    barBlock.style.display = "none";
+  }
+
+  const btn = document.getElementById("claimBtn");
+  if (tile.owner === 0) {
+    btn.textContent = "REINFORCE TURF";
+    btn.style.background = COLORS.cyan;
+  } else if (tile.owner === null) {
+    btn.textContent = "CLAIM THIS SPOT";
+    btn.style.background = COLORS.yellow;
+  } else {
+    btn.textContent = "CONTEST TURF";
+    btn.style.background = COLORS.pink;
+  }
+}
+
+function renderAll() {
+  renderBoard();
+  renderStats();
+  renderSheet();
+}
+
+// ---------- Interaction ----------
+function selectTile(id) {
+  selectedId = id;
+  renderAll();
+}
+
+function showFlash(msg, color) {
+  const el = document.getElementById("flash");
+  el.textContent = msg;
+  el.style.color = color;
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => { el.textContent = ""; }, 1600);
+}
+
+function claimSelected() {
+  const tile = tiles.find(t => t.id === selectedId);
+  if (!tile) return;
+
+  if (tile.owner === 0) {
+    tile.strength = Math.min(100, tile.strength + 25);
+    showFlash("TURF REINFORCED", COLORS.cyan);
+    streak++;
+  } else if (tile.owner === null) {
+    tile.owner = 0;
+    tile.strength = 55;
+    showFlash("SPOT CLAIMED", COLORS.cyan);
+    streak++;
+  } else {
+    const success = Math.random() < 0.55;
+    if (success) {
+      tile.owner = 0;
+      tile.strength = 40;
+      showFlash("TURF WAR WON", COLORS.cyan);
+    } else {
+      tile.strength = Math.max(0, tile.strength - 15);
+      showFlash("CONTEST FAILED", COLORS.orange);
+    }
+  }
+
+  renderAll();
+}
+
+document.getElementById("claimBtn").addEventListener("click", claimSelected);
+document.getElementById("closeSheet").addEventListener("click", () => {
+  selectedId = null;
+  renderAll();
+});
+
+// ---------- Decay loop ----------
+setInterval(() => {
+  tiles.forEach((t) => {
+    if (t.owner === null) return;
+    t.strength = Math.max(0, t.strength - (2 + Math.random() * 3));
+    if (t.strength <= 0) {
+      t.owner = null;
+      t.strength = 0;
+    }
+  });
+  renderAll();
+}, 4000);
+
+// ---------- Init ----------
+tiles = generateGrid();
+seedRivals();
+renderAll();
+</script>
+
+</body>
+</html>
