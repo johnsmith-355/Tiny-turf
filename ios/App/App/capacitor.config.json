@@ -1,0 +1,7 @@
+{
+"appId": "com.John.tinyturf",
+	"appName": "Tiny Turf",
+	"webDir": "www",
+	"bundledWebRuntime": false,
+	"packageClassList": []
+}
